@@ -4,7 +4,7 @@ const ExpenseSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
       maxLength: 50,
     },
@@ -30,7 +30,7 @@ const ExpenseSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: true,
+      required: false,
       maxLength: 20,
       trim: true,
     },

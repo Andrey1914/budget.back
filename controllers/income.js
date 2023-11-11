@@ -12,7 +12,6 @@ exports.addIncome = async (req, res) => {
   });
 
   try {
-    //validations
     if (!title || !category || !description || !date) {
       return res.status(400).json({ message: "All fields are required!" });
     }
@@ -26,8 +25,6 @@ exports.addIncome = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
   }
-
-  console.log(income);
 };
 
 exports.getIncomes = async (req, res) => {
@@ -43,9 +40,9 @@ exports.deleteIncome = async (req, res) => {
   const { id } = req.params;
   IncomeSchema.findByIdAndDelete(id)
     .then((income) => {
-      res.status(200).json({ message: "Income Deleted" });
+      res.status(200).json({ income, message: "Income Deleted" });
     })
     .catch((err) => {
-      res.status(500).json({ message: "Server Error" });
+      res.status(500).json({ err, message: "Server Error" });
     });
 };
