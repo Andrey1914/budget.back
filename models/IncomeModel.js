@@ -4,7 +4,7 @@ const IncomeSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
       maxLength: 50,
     },
