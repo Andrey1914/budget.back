@@ -8,3 +8,5 @@ package-lock.json
 .env.test.local
 .env.production.local
 .env.local
+
+./sendgrid.env

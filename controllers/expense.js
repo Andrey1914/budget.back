@@ -12,7 +12,7 @@ exports.addExpense = async (req, res) => {
   });
 
   try {
-    if (!title || !category || !description || !date) {
+    if (!title || !amount || !category || !description || !date) {
       return res.status(400).json({ message: "All fields are required!" });
     }
     if (amount <= 0 || !amount === "number") {
@@ -23,7 +23,8 @@ exports.addExpense = async (req, res) => {
     await expense.save();
     res.status(200).json({ message: "Expense Added" });
   } catch (error) {
-    res.status(500).json({ message: "Server Error" });
+    console.error(error);
+    res.status(500).json({ error, message: "Server Error" });
   }
 };
 

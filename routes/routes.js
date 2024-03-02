@@ -36,7 +36,7 @@ router
   .get("/users/verify/:verificationToken", userVerifyToken)
   .post("/users/verify", userVerify)
   .post("/users/login", login)
-  .get("/users/logout", authorize, logout)
+  .post("/users/logout", authorize, logout)
   .get("/users/current", authorize, currentUser)
   .patch("/users/avatars", authorize, uploadAvatars)
 

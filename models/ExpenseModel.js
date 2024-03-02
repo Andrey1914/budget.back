@@ -31,7 +31,7 @@ const ExpenseSchema = new mongoose.Schema(
     description: {
       type: String,
       required: false,
-      maxLength: 20,
+      maxLength: 200,
       trim: true,
     },
   },

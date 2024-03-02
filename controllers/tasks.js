@@ -11,7 +11,7 @@ exports.addTask = async (req, res) => {
 
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await TaskSchema.find();
+    const tasks = await TaskSchema.find().sort({ createdAt: -1 });
     res.status(200).json({ tasks, message: "This is your tasks list." });
   } catch (error) {
     res.send(error).status(500).json({ message: "Server error" });
@@ -37,10 +37,12 @@ exports.editTask = async (req, res) => {
 };
 
 exports.deleteTask = async (req, res) => {
-  try {
-    const task = await TaskSchema.findByIdAndDelete(req.params.id);
-    res.status(200).json({ task, message: "The task was deleted." });
-  } catch (error) {
-    res.send(error).status(500).json({ message: "Server error" });
-  }
+  const { id } = req.params;
+  TaskSchema.findByIdAndDelete(id)
+    .then((task) => {
+      res.status(200).json({ task, message: "The task was deleted." });
+    })
+    .catch((err) => {
+      res.status(500).json({ err, message: "Server Error" });
+    });
 };

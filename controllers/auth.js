@@ -17,15 +17,18 @@ const Jimp = require("jimp");
 const { nanoid } = require("nanoid");
 // const { v4: uuidv4 } = require("uuid");
 
-const User = require("../models/User");
+const UserSchema = require("../models/User");
 
 const { RequestError, sendMail } = require("../helper");
 
-const { authorize, upload } = require("../middlwares");
+const { upload } = require("../middlwares");
+
+const { SECRET_KEY } = process.env;
 
 // const router = express.Router();
 
 const userRegisterSchema = Joi.object({
+  name: Joi.string().required(),
   password: Joi.string().min(6).required(),
   email: Joi.string().required(),
   subscription: Joi.string().valid("starter", "pro", "business"),
@@ -40,8 +43,6 @@ const verifyEmailSchema = Joi.object({
   email: Joi.string().required(),
 });
 
-const { SECRET_KEY } = process.env;
-
 // router.post("/users/signup",
 exports.signUp = async (req, res, next) => {
   try {
@@ -50,8 +51,8 @@ exports.signUp = async (req, res, next) => {
       throw RequestError(400, "Error from Joi or another validation library");
     }
 
-    const { email, password, subscription } = req.body;
-    const user = await User.findOne({ email });
+    const { name, email, password, subscription } = req.body;
+    const user = await UserSchema.findOne({ email });
     if (user) {
       throw RequestError(409, "This email is already in use");
     }
@@ -62,7 +63,8 @@ exports.signUp = async (req, res, next) => {
 
     const verificationToken = nanoid();
 
-    const result = await User.create({
+    await UserSchema.create({
+      name,
       email,
       password: hashPassword,
       subscription,
@@ -73,13 +75,90 @@ exports.signUp = async (req, res, next) => {
     const mail = {
       to: email,
       subject: "Site registration confirmation",
-      html: `<a target="_blank" href="http://localhost:4000/api/users/verify/:${verificationToken}">Verify Email</a>`,
+      html: `<a target="_blank" href="http://localhost:10000/api/v1/users/verify/:${verificationToken}">Verify Email</a>`,
     };
 
     await sendMail(mail);
     res.status(201).json({
-      email: result.email,
-      subscription: result.subscription,
+      status: "Created",
+      code: 201,
+      data: {
+        user: {
+          name,
+          email,
+          subscription,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// router.post("/users/login",
+exports.login = async (req, res, next) => {
+  try {
+    const { error } = userLoginSchema.validate(req.body);
+    if (error) {
+      throw RequestError(400, "Error from Joi or another validation library");
+    }
+
+    const { email, password } = req.body;
+    const user = await UserSchema.findOne({ email });
+
+    const passwordCompare = await bcrypt.compare(password, user.password);
+    if (!user || !passwordCompare) {
+      throw RequestError(401, "Email or password is wrong");
+    }
+    if (!user || !passwordCompare) {
+      throw RequestError(401, "Email or password is wrong");
+    }
+
+    const payload = {
+      id: user._id,
+    };
+
+    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "1h" });
+    await UserSchema.findByIdAndUpdate(user._id, { token });
+
+    res.json({
+      status: "Success",
+      code: 200,
+      data: {
+        token,
+        user: {
+          email,
+          name: user.name,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// router.post("/users/logout",
+exports.logout = async (req, res, next) => {
+  try {
+    const { _id } = req.user;
+
+    await UserSchema.findByIdAndUpdate(_id, { token: "" });
+
+    res.status(204).json({ message: "No content" });
+  } catch (error) {
+    console.error("Error during logout:", error);
+
+    next(error);
+  }
+};
+
+// router.get("/users/current",
+exports.currentUser = (req, res, next) => {
+  try {
+    const { email, subscription } = req.user;
+    res.status(200).json({
+      email,
+      subscription,
     });
   } catch (error) {
     next(error);
@@ -90,12 +169,12 @@ exports.signUp = async (req, res, next) => {
 exports.userVerifyToken = async (req, res, next) => {
   try {
     const { verificationToken } = req.params;
-    const user = await User.findOne({ verificationToken });
+    const user = await UserSchema.findOne({ verificationToken });
     if (!user) {
       throw RequestError(404, "Not Found");
     }
 
-    await User.findByIdAndUpdate(user._id, {
+    await UserSchema.findByIdAndUpdate(user._id, {
       verificationToken: "",
       verify: true,
     });
@@ -114,7 +193,7 @@ exports.userVerify = async (req, res, next) => {
     }
 
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await UserSchema.findOne({ email });
     if (!user) {
       throw RequestError(400, "Verification has already been passed");
     }
@@ -122,67 +201,12 @@ exports.userVerify = async (req, res, next) => {
     const mail = {
       to: email,
       subject: "Site registration confirmation",
-      html: `<a target="_blank" href="http://localhost:4000/api/users/:${user.verificationToken}">Verify Email</a>`,
+      html: `<a target="_blank" href="http://localhost:10000/api/v1/users/:${user.verificationToken}">Verify Email</a>`,
     };
 
     await sendMail(mail);
     res.json({
       message: "Verification email sent",
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// router.post("/users/login",
-exports.login = async (req, res, next) => {
-  try {
-    const { error } = userLoginSchema.validate(req.body);
-    if (error) {
-      throw RequestError(400, "Error from Joi or another validation library");
-    }
-
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-
-    const passwordCompare = await bcrypt.compare(password, user.password);
-    if (!user || !passwordCompare) {
-      throw RequestError(401, "Email or password is wrong");
-    }
-    if (!user || !passwordCompare) {
-      throw RequestError(401, "Email or password is wrong");
-    }
-    const payload = {
-      id: user._id,
-    };
-    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "1h" });
-    await User.findByIdAndUpdate(user._id, { token });
-    res.json({
-      token,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// router.get("/users/logout",
-exports.logout = async (req, res, next) => {
-  try {
-    const { _id } = req.user;
-    await User.findByIdAndUpdate(_id, { token: "" });
-    res.status(204).json({ message: "No content" });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// router.get("/users/current",
-exports.currentUser = (req, res, next) => {
-  try {
-    const { email, subscription } = req.user;
-    res.status(200).json({
-      email,
-      subscription,
     });
   } catch (error) {
     next(error);
@@ -220,5 +244,3 @@ async (req, res, next) => {
     next(error);
   }
 };
-
-// module.exports = router;

@@ -1,7 +1,12 @@
-const { Schema, model } = require("mongoose");
+// const { Schema, model } = require("mongoose");
+const mongoose = require("mongoose");
 
-const userSchema = Schema(
+const UserSchema = new mongoose.Schema(
   {
+    name: {
+      type: String,
+      require: [true, "Name is required"],
+    },
     password: {
       type: String,
       required: [true, "Set password for user"],
@@ -24,10 +29,10 @@ const userSchema = Schema(
       type: String,
       required: true,
     },
-    verify: {
-      type: Boolean,
-      default: false,
-    },
+    // verify: {
+    //   type: Boolean,
+    //   default: false,
+    // },
     verificationToken: {
       type: String,
       require: [true, "Verify token is require"],
@@ -36,6 +41,4 @@ const userSchema = Schema(
   { versionKey: false }
 );
 
-const User = model("user", userSchema);
-
-module.exports = User;
+module.exports = mongoose.model("User", UserSchema);
